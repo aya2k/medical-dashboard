@@ -12,8 +12,11 @@ class WorkshopController extends Controller
     // ✅ عرض جميع الورش
     public function index()
     {
-        $workshops = Workshop::latest()->get();
-        return response()->json(['data' => $workshops]);
+        $workshops = Workshop::latest('created_at')->get();
+
+        return response()->json([
+            'data' => $workshops
+        ]);
     }
 
     // ✅ إنشاء ورشة جديدة
@@ -22,12 +25,40 @@ class WorkshopController extends Controller
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
             'video' => 'nullable|file|mimetypes:video/mp4,video/avi,video/mpeg,video/quicktime',
-            'link' => 'nullable|url',
+            'image' => 'nullable|mimes:jpg,jpeg,png,gif,webp,svg|max:2048',
             'features' => 'nullable|array',
+            'link' => 'nullable|string',
+            'description' => 'nullable|string',
         ]);
 
         if ($request->hasFile('video')) {
-            $validated['video'] = $request->file('video')->store('workshops/videos', 'public');
+            $videoName = time() . '.' . $request->file('video')->extension();
+            $videoDestination = public_path('assets/workshops/videos/');
+
+            if (!file_exists($videoDestination)) {
+                mkdir($videoDestination, 0777, true);
+            }
+
+            $request->file('video')->move($videoDestination, $videoName);
+
+            // حفظ لينك فعلي يمكن فتحه من المتصفح
+            $validated['video'] = asset('public/assets/workshops/videos/' . $videoName);
+        }
+
+        $fileName = null;
+
+        if ($request->hasFile('image')) {
+            $fileName = time() . '.' . $request->file('image')->extension();
+            $destinationPath = public_path('assets/workshops/image/');
+
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0777, true);
+            }
+
+            $request->file('image')->move($destinationPath, $fileName);
+
+
+            $validated['image'] = asset('public/assets/workshops/image/' . $fileName);
         }
 
         $workshop = Workshop::create($validated);
@@ -61,19 +92,59 @@ class WorkshopController extends Controller
 
         $validated = $request->validate([
             'title' => 'nullable|string|max:255',
-
+            'image' => 'nullable|mimes:jpg,jpeg,png,gif,webp,svg|max:2048',
             'video' => 'nullable|file|mimetypes:video/mp4,video/avi,video/mpeg,video/quicktime',
-            'link' => 'nullable|url',
-            'is_active' => 'boolean',
+            'link' => 'nullable|string',
+            'description' => 'nullable|string',
             'features' => 'nullable|array',
         ]);
 
         if ($request->hasFile('video')) {
+
+            // حذف الفيديو القديم لو موجود
             if ($workshop->video) {
-                Storage::disk('public')->delete($workshop->video);
+                $oldVideoPath = str_replace(url('/'), public_path(), $workshop->video);
+                if (file_exists($oldVideoPath)) {
+                    unlink($oldVideoPath);
+                }
             }
-            $validated['video'] = $request->file('video')->store('workshops/videos', 'public');
+
+            // رفع الفيديو الجديد
+            $videoName = time() . '.' . $request->file('video')->extension();
+            $videoDestination = public_path('assets/workshops/videos/');
+
+            if (!file_exists($videoDestination)) {
+                mkdir($videoDestination, 0777, true);
+            }
+
+            $request->file('video')->move($videoDestination, $videoName);
+
+            // حفظ لينك فعلي يمكن فتحه من المتصفح
+            $validated['video'] = asset('public/assets/workshops/videos/' . $videoName);
         }
+
+        if ($request->hasFile('image')) {
+
+
+            if ($workshop->image) {
+                $oldImagePath = str_replace(url('/'), public_path(), $workshop->image);
+                if (file_exists($oldImagePath)) {
+                    unlink($oldImagePath);
+                }
+            }
+
+
+            $fileName = time() . '.' . $request->file('image')->extension();
+            $destinationPath = public_path('assets/workshops/');
+
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0777, true);
+            }
+
+            $request->file('image')->move($destinationPath, $fileName);
+            $validated['image'] = asset('public/assets/workshops/' . $fileName);
+        }
+
 
         $workshop->update($validated);
 

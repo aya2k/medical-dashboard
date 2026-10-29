@@ -10,10 +10,12 @@ use App\Http\Controllers\Controller;
 class ServiceController extends Controller
 {
     // 🟢 عرض كل الخدمات
-    public function index()
-    {
-        return response()->json(Service::all());
-    }
+   public function index()
+{
+    $services = Service::latest('created_at')->get();
+
+    return response()->json($services);
+}
 
     // 🟢 إنشاء خدمة جديدة
     public function store(Request $request)
@@ -21,11 +23,27 @@ class ServiceController extends Controller
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'image' => 'nullable|file|image',
-           
+            'image' => 'nullable|mimes:jpg,jpeg,png,gif,webp,svg|max:2048',
+            'link' => 'nullable|string',
+            'features' => 'nullable|array',
+
         ]);
 
-      
+        // 👈 default null
+        $validated['image'] = null;
+
+        if ($request->hasFile('image')) {
+            $fileName = time() . '.' . $request->file('image')->extension();
+            $destinationPath = public_path('assets/services/image/');
+
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0777, true);
+            }
+
+            $request->file('image')->move($destinationPath, $fileName);
+
+            $validated['image'] = asset('public/assets/services/image/' . $fileName);
+        }
 
         $service = Service::create($validated);
 
@@ -34,6 +52,7 @@ class ServiceController extends Controller
             'data' => $service
         ]);
     }
+
 
     // 🟢 عرض خدمة محددة
     public function show($id)
@@ -56,12 +75,37 @@ class ServiceController extends Controller
         $validated = $request->validate([
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
-            'image' => 'nullable|file|image',
-           
+            'image' => 'nullable|mimes:jpg,jpeg,png,gif,webp,svg|max:2048',
+            'link' => 'nullable|string',
+            'features' => 'nullable|array',
+
+
         ]);
 
-        if (isset($validated['title'])) {
-            $validated['slug'] = Str::slug($validated['title']);
+
+
+        if ($request->hasFile('image')) {
+
+            // ✅ حذف الصورة القديمة
+            if ($service->image) {
+                $oldImagePath = str_replace(url('/'), public_path(), $service->image);
+                if (file_exists($oldImagePath)) {
+                    unlink($oldImagePath);
+                }
+            }
+
+            // ✅ رفع الجديدة
+            $fileName = time() . '.' . $request->file('image')->extension();
+            $destinationPath = public_path('assets/services/image/');
+
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0777, true);
+            }
+
+            $request->file('image')->move($destinationPath, $fileName);
+
+            // ✅ URL كامل (يكسر الكاش)
+            $validated['image'] = asset('public/assets/services/image/' . $fileName);
         }
 
         $service->update($validated);

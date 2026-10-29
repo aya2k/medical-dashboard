@@ -16,7 +16,9 @@ return new class extends Migration
             $table->string('title')->nullable();                     
             $table->json('features')->nullable();    
             $table->string('video')->nullable(); 
-            $table->string('image')->nullable();         
+            $table->string('image')->nullable();  
+            $table->string('link')->nullable();   
+             $table->text('description')->nullable();     
             $table->timestamps();
         });
     }

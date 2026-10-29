@@ -12,6 +12,7 @@ class Workshop extends Model
         'link',
         'image',
         'features',
+        'description'
     ];
 
      protected $casts = [

@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('user_name')->nullable();
             $table->string('user_image')->nullable();
             $table->boolean('is_active')->default(true);
+             $table->string('category')->nullable();  
             $table->timestamps();
         });
     }

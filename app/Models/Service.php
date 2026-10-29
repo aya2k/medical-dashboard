@@ -17,5 +17,10 @@ class Service extends Model
         'image',
         'link',
         'is_active',
+        'features'
+    ];
+
+    protected $casts = [
+        'features' => 'array',
     ];
 }
